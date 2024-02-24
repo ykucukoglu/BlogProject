@@ -1,7 +1,10 @@
 ﻿using AutoMapper;
 using Blog.Entity.DTOs.Articles;
+using Blog.Entity.Entities;
+using Blog.Service.Extensions;
 using Blog.Service.Services.Abstractions;
 using Blog.Service.Services.Concretes;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Blog.Web.Areas.Admin.Controllers
@@ -12,12 +15,14 @@ namespace Blog.Web.Areas.Admin.Controllers
         private readonly IArticleService _articleService;
         private readonly ICategoryService _categoryService;
         private readonly IMapper _mapper;
+        private readonly IValidator<Article> _validator;
 
-        public ArticleController(IArticleService articleService, ICategoryService categoryService, IMapper mapper)
+        public ArticleController(IArticleService articleService, ICategoryService categoryService, IMapper mapper, IValidator<Article> validator)
         {
             _articleService = articleService;
             _categoryService = categoryService;
             _mapper = mapper;
+            _validator = validator;
         }
 
         public async Task<IActionResult> Index()
@@ -34,11 +39,20 @@ namespace Blog.Web.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Add(ArticleAddDto articleAddDto)
         {
-            await _articleService.CreateArticleAsync(articleAddDto);
-            RedirectToAction("Index", "Article", new { Area = "Admin" });
+            var map = _mapper.Map<Article>(articleAddDto);
+            var result = await _validator.ValidateAsync(map);
 
-            var categories = await _categoryService.GetAllCategoriesNonDeleted();
-            return View(new ArticleAddDto { Categories = categories });
+            if (result.IsValid)
+            {
+                await _articleService.CreateArticleAsync(articleAddDto);
+                return RedirectToAction("Index", "Article", new { Area = "Admin" });
+            }
+            else
+            {
+                result.AddToModelState(this.ModelState);
+                var categories = await _categoryService.GetAllCategoriesNonDeleted();
+                return View(new ArticleAddDto { Categories = categories });
+            }
         }
         [HttpGet]
         public async Task<IActionResult> Update(Guid articleId)
@@ -54,7 +68,18 @@ namespace Blog.Web.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Update(ArticleUpdateDto articleUpdateDto)
         {
-            await _articleService.UpdataArticleAsync(articleUpdateDto);
+            var map = _mapper.Map<Article>(articleUpdateDto);
+            var result = await _validator.ValidateAsync(map);
+
+            if (result.IsValid)
+            {
+                await _articleService.UpdataArticleAsync(articleUpdateDto);
+            }
+            else
+            {
+                result.AddToModelState(this.ModelState);
+            }
+
             var categories = await _categoryService.GetAllCategoriesNonDeleted();
             articleUpdateDto.Categories = categories;
 

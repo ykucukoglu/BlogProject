@@ -8,6 +8,7 @@
             <div class="card mb-4">
                 <h5 class="card-header"></h5>
                 <form asp-area="Admin" asp-controller="Article" asp-action="Add" method="post" enctype="multipart/form-data">
+                   <div asp-validation-summary="ModelOnly"></div>
                     <div class="card-body">
                         <div class="form-group mb-3">
                             <label asp-for="CategoryId" class="form-label">Category</label>
