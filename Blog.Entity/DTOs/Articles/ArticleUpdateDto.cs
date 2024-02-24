@@ -7,15 +7,12 @@ using System.Threading.Tasks;
 
 namespace Blog.Entity.DTOs.Articles
 {
-    public class ArticleDto
+    public class ArticleUpdateDto
     {
-        public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid Id { get; set; }
         public string Title { get; set; }
         public string Content { get; set; }
-        public CategoryDto Category { get; set; }
-        public string CreatedBy { get; set; }
-        public  DateTime CreatedDate { get; set; }
-        public bool IsDeleted { get; set; }
-
+        public Guid CategoryId { get; set; }
+        public IList<CategoryDto> Categories { get; set; }
     }
 }
