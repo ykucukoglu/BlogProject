@@ -24,16 +24,16 @@ namespace Blog.Service.Services.Concretes
 
         public async Task CreateArticleAsync(ArticleAddDto articleAddDto)
         {
-            var userId = Guid.Parse("621A6B12-5AE7-410C-8762-5A75C548078C");
+            var userId = Guid.Parse("9d07d919-2662-44a7-bef3-1e2d4c52cfca");
             var imageId = Guid.Parse("C114004B-8D5B-4882-A5F4-909B5EA2F766");
-            var article = new Article(articleAddDto.Title,articleAddDto.Content,articleAddDto.CategoryId,userId, imageId);
+            var article = new Article(articleAddDto.Title, articleAddDto.Content, userId, articleAddDto.CategoryId, imageId);
             await _unitOfWork.GetRepository<Article>().AddAsync(article);
             await _unitOfWork.SaveAsync();
         }
 
         public async Task<List<ArticleDto>> GetAllArticlesWithCategoryNonDeletedAsync()
         {
-            var articles =  await _unitOfWork.GetRepository<Article>().GetAllAsync(x => !x.IsDeleted, x => x.Category);
+            var articles = await _unitOfWork.GetRepository<Article>().GetAllAsync(x => !x.IsDeleted, x => x.Category);
             var map = _mapper.Map<List<ArticleDto>>(articles);
             return map;
         }
@@ -46,16 +46,18 @@ namespace Blog.Service.Services.Concretes
 
         }
 
-        public async Task UpdataArticleAsync(ArticleUpdateDto articleUpdateDto)
+        public async Task<string> UpdataArticleAsync(ArticleUpdateDto articleUpdateDto)
         {
             var article = await _unitOfWork.GetRepository<Article>().GetAsync(x => !x.IsDeleted && x.Id == articleUpdateDto.Id, x => x.Category);
             //_mapper.Map<ArticleUpdateDto>(article);
+            string articleTitleBeforeUpdate = article.Title;
             _mapper.Map(articleUpdateDto, article);
             await _unitOfWork.GetRepository<Article>().UpdateAsync(article);
             await _unitOfWork.SaveAsync();
+            return articleTitleBeforeUpdate;
         }
 
-        public async Task SafeDeleteArticleAsync(Guid articleId)
+        public async Task<string> SafeDeleteArticleAsync(Guid articleId)
         {
             var article = await _unitOfWork.GetRepository<Article>().GetByGuidAsync(articleId);
             article.IsDeleted = true;
@@ -63,6 +65,7 @@ namespace Blog.Service.Services.Concretes
 
             await _unitOfWork.GetRepository<Article>().UpdateAsync(article);
             await _unitOfWork.SaveAsync();
+            return article.Title;
         }
     }
 }
