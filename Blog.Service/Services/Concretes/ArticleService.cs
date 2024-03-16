@@ -2,7 +2,9 @@
 using Blog.Data.UnitOfWorks;
 using Blog.Entity.DTOs.Articles;
 using Blog.Entity.Entities;
+using Blog.Entity.Enums;
 using Blog.Service.Extensions;
+using Blog.Service.Helpers.Images;
 using Blog.Service.Services.Abstractions;
 using Microsoft.AspNetCore.Http;
 using System;
@@ -20,13 +22,15 @@ namespace Blog.Service.Services.Concretes
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ClaimsPrincipal _user;
+        private readonly IImageHelper _imageHelper;
 
-        public ArticleService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor httpContextAccessor)
+        public ArticleService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor httpContextAccessor, IImageHelper imageHelper)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _httpContextAccessor = httpContextAccessor;
             _user = _httpContextAccessor.HttpContext.User;
+            _imageHelper = imageHelper;
         }
 
         public async Task CreateArticleAsync(ArticleAddDto articleAddDto)
@@ -34,8 +38,11 @@ namespace Blog.Service.Services.Concretes
             var userId = _user.GetLoggedInUserId();
             var userEmail = _user.GetLoggedInEmail();
 
-            var imageId = Guid.Parse("C114004B-8D5B-4882-A5F4-909B5EA2F766");
-            var article = new Article(articleAddDto.Title, articleAddDto.Content, userId, userEmail, articleAddDto.CategoryId, imageId);
+            var imageUpload = await _imageHelper.Upload(articleAddDto.Title, articleAddDto.Photo, ImageType.Post);
+            Image image = new(imageUpload.FullName, articleAddDto.Photo.ContentType, userEmail);
+            await _unitOfWork.GetRepository<Image>().AddAsync(image);
+
+            var article = new Article(articleAddDto.Title, articleAddDto.Content, userId, userEmail, articleAddDto.CategoryId, image.Id);
             await _unitOfWork.GetRepository<Article>().AddAsync(article);
             await _unitOfWork.SaveAsync();
         }
@@ -49,7 +56,7 @@ namespace Blog.Service.Services.Concretes
 
         public async Task<ArticleDto> GetAllArticleWithCategoryNonDeletedAsync(Guid articleId)
         {
-            var articles = await _unitOfWork.GetRepository<Article>().GetAsync(x => !x.IsDeleted && x.Id == articleId, x => x.Category);
+            var articles = await _unitOfWork.GetRepository<Article>().GetAsync(x => !x.IsDeleted && x.Id == articleId, x => x.Category, i => i.Image);
             var map = _mapper.Map<ArticleDto>(articles);
             return map;
 
@@ -58,12 +65,22 @@ namespace Blog.Service.Services.Concretes
         public async Task<string> UpdataArticleAsync(ArticleUpdateDto articleUpdateDto)
         {
             var userEmail = _user.GetLoggedInEmail();
-            var article = await _unitOfWork.GetRepository<Article>().GetAsync(x => !x.IsDeleted && x.Id == articleUpdateDto.Id, x => x.Category);
+            var article = await _unitOfWork.GetRepository<Article>().GetAsync(x => !x.IsDeleted && x.Id == articleUpdateDto.Id, x => x.Category, i => i.Image);
+           
+            if(articleUpdateDto.Image != null)
+            {
+                _imageHelper.Delete(article.Image.FileName);
+                var imageUpload = await _imageHelper.Upload(articleUpdateDto.Title, articleUpdateDto.Photo, ImageType.Post);
+                Image image = new(imageUpload.FullName, articleUpdateDto.Photo.ContentType, userEmail);
+                await _unitOfWork.GetRepository<Image>().AddAsync(image);
+                article.ImageId = image.Id;
+            }
+            
             article.ModifiedDate = DateTime.Now;
             article.ModifiedBy = userEmail;
 
             string articleTitleBeforeUpdate = article.Title;
-            _mapper.Map(articleUpdateDto, article);
+            _mapper.Map(article, articleUpdateDto);
             await _unitOfWork.GetRepository<Article>().UpdateAsync(article);
             await _unitOfWork.SaveAsync();
             return articleTitleBeforeUpdate;
