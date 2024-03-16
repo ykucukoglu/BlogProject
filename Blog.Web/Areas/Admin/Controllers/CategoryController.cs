@@ -49,7 +49,7 @@ namespace Blog.Web.Areas.Admin.Controllers
             if (result.IsValid)
             {
                 await _categoryService.CreateCategoryAsync(categoryAddDto);
-                _toastNotification.AddSuccessToastMessage(Messages.Article.Add(categoryAddDto.Name), new ToastrOptions { Title = "İşlem Başarılı" });
+                _toastNotification.AddSuccessToastMessage(Messages.Category.Add(categoryAddDto.Name), new ToastrOptions { Title = "İşlem Başarılı" });
                 return RedirectToAction("Index", "Category", new { Area = "Admin" });
             }
             else
@@ -93,6 +93,24 @@ namespace Blog.Web.Areas.Admin.Controllers
             var title = await _categoryService.SafeDeleteCategoryAsync(categoryId);
             _toastNotification.AddSuccessToastMessage(Messages.Category.Delete(title), new ToastrOptions() { Title = "İşlem Başarılı" });
             return RedirectToAction("Index", "Category", new { Area = "Admin" });
+        }
+        [HttpPost]
+        public async Task<IActionResult> AddWithAjax([FromBody] CategoryAddDto categoryAddDto)
+        {
+            var map = _mapper.Map<Category>(categoryAddDto);
+            var result = await _validator.ValidateAsync(map);
+
+            if (result.IsValid)
+            {
+                await _categoryService.CreateCategoryAsync(categoryAddDto);
+                _toastNotification.AddSuccessToastMessage(Messages.Category.Add(categoryAddDto.Name), new ToastrOptions { Title = "İşlem Başarılı" });
+                return Json(Messages.Category.Add(categoryAddDto.Name));
+            }
+            else
+            {
+                _toastNotification.AddErrorToastMessage(result.Errors.First().ErrorMessage, new ToastrOptions { Title = "İşlem Başarısız" });
+                return Json(result.Errors.First().ErrorMessage);
+            }
         }
     }
 }
