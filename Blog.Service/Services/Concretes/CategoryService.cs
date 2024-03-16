@@ -58,10 +58,11 @@ namespace Blog.Service.Services.Concretes
             var userEmail = _user.GetLoggedInEmail();
             var category = await _unitOfWork.GetRepository<Category>().GetAsync(x => !x.IsDeleted && x.Id == categoryUpdateDto.Id);
 
+
             category.ModifiedDate = DateTime.Now;
             category.ModifiedBy = userEmail;
 
-            _mapper.Map(category, categoryUpdateDto);
+            _mapper.Map(categoryUpdateDto,category);
 
             await _unitOfWork.GetRepository<Category>().UpdateAsync(category);
             await _unitOfWork.SaveAsync();
