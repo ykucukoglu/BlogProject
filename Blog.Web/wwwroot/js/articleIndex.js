@@ -39,4 +39,5 @@ $(document).ready(function () {
         //}
     });
     $('#categoriesTable').DataTable();
+    $('#usersTable').DataTable();
 });
