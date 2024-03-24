@@ -7,18 +7,24 @@ namespace Blog.Web.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
-        private readonly IArticleService articleService;
+        private readonly IArticleService _articleService;
+        private readonly IArticleVisitorService _articleVisitorService;
 
-        public HomeController(ILogger<HomeController> logger, IArticleService articleService)
+        public HomeController(IArticleService articleService, IArticleVisitorService articleVisitorService)
         {
-            _logger = logger;
-            this.articleService = articleService;
+            _articleService = articleService;
+            _articleVisitorService = articleVisitorService;
         }
-
-        public async Task<IActionResult> Index()
+        [HttpGet]
+        public async Task<IActionResult> Index(Guid? categoryId, int currentPage = 1, int pageSize = 3, bool isAscending = false)
         {
-            var articles = await articleService.GetAllArticlesWithCategoryNonDeletedAsync();
+            var articles = await _articleService.GetAllByPagingAsync(categoryId, currentPage, pageSize, isAscending);
+            return View(articles);
+        }
+        [HttpGet]
+        public async Task<IActionResult> Search(string keyword, int currentPage = 1, int pageSize = 3, bool isAscending = false)
+        {
+            var articles = await _articleService.SearchAsync(keyword, currentPage, pageSize, isAscending);
             return View(articles);
         }
 
@@ -31,6 +37,13 @@ namespace Blog.Web.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+        public async Task<IActionResult> Detail(Guid id)
+        {
+            await _articleVisitorService.AddArticleVisitorAsync(id);
+
+            var article = await _articleService.GetAllArticleWithCategoryNonDeletedAsync(id);
+            return View(article);
         }
     }
 }

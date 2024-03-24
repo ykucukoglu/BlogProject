@@ -1,4 +1,5 @@
 ﻿using Blog.Entity.DTOs.Categories;
+using Blog.Entity.DTOs.Users;
 using Blog.Entity.Entities;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,8 @@ namespace Blog.Entity.DTOs.Articles
         public string CreatedBy { get; set; }
         public  DateTime CreatedDate { get; set; }
         public bool IsDeleted { get; set; }
+        public UserDto User { get; set; }
+        public int ViewCount { get; set; }
 
     }
 }
